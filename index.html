@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kanhiya's Task Manager</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="top-bar">
+    <div class="theme-toggle">
+      <label class="switch">
+        <input type="checkbox" id="toggleTheme">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="filters">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="pending">Pending</button>
+      <button data-filter="completed">Completed</button>
+    </div>
+    <div class="progress" id="progress">0 of 0 completed</div>
+  </div>
+
+  <div class="header">
+    <h1>hi, kanhiya! 👋🏻</h1>
+    <p class="current-time" id="currentTime"></p>
+    <div class="actions">
+      <button id="openPopupBtn" class="add-task">+ add new task</button>
+      <button id="clearAllBtn" class="clear-btn">clear all tasks</button>
+    </div>
+  </div>
+
+  <div id="tasks" class="task-list"></div>
+
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <h2>Add New Task</h2>
+      <input type="text" id="taskName" placeholder="Task Name" />
+      <input type="date" id="taskDate" />
+      <input type="time" id="taskTime" />
+      <button id="doneBtn" class="done-btn">Done</button>
+      <button id="cancelBtn" class="close-btn">Cancel</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
