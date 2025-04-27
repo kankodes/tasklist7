@@ -1,19 +1,25 @@
 document.addEventListener('DOMContentLoaded', () => {
-  let tasks = [];
+  // 1) Initialize from localStorage
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
   let currentFilter = 'all';
 
-  // DOM elements
+  // Grab DOM elements
   const openPopupBtn = document.getElementById('openPopupBtn');
-  const cancelBtn = document.getElementById('cancelBtn');
-  const doneBtn = document.getElementById('doneBtn');
-  const clearAllBtn = document.getElementById('clearAllBtn');
-  const toggle = document.getElementById('toggleTheme');
-  const filterBtns = document.querySelectorAll('.filters button');
+  const cancelBtn    = document.getElementById('cancelBtn');
+  const doneBtn      = document.getElementById('doneBtn');
+  const clearAllBtn  = document.getElementById('clearAllBtn');
+  const toggle       = document.getElementById('toggleTheme');
+  const filterBtns   = document.querySelectorAll('.filters button');
   const tasksContainer = document.getElementById('tasks');
-  const currentTimeEl = document.getElementById('currentTime');
-  const progressEl = document.getElementById('progress');
+  const currentTimeEl  = document.getElementById('currentTime');
+  const progressEl     = document.getElementById('progress');
 
-  // Theme toggle
+  // Helper: save to localStorage
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  // Theme toggle (unchanged)
   if (toggle) {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.body.classList.toggle('dark', savedTheme === 'dark');
@@ -24,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Filters
+  // Filters (unchanged)
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelector('.filters button.active').classList.remove('active');
@@ -34,41 +40,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Clock
+  // Live clock (unchanged)
   const updateClock = () => {
     const now = new Date();
-    currentTimeEl.innerText = `it’s ${now.toLocaleString('en-GB', {
-      day: 'numeric', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+    currentTimeEl.innerText = `it’s ${now.toLocaleString('en-GB',{
+      day:'numeric', month:'long', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
     })} right now.`;
   };
   setInterval(updateClock, 1000);
   updateClock();
 
-  // Popup controls
+  // Popup controls (unchanged)
   openPopupBtn.addEventListener('click', () => document.getElementById('popup').style.display = 'flex');
-  cancelBtn.addEventListener('click', () => document.getElementById('popup').style.display = 'none');
+  cancelBtn   .addEventListener('click', () => document.getElementById('popup').style.display = 'none');
 
-  // Task operations
+  // Add Task
   doneBtn.addEventListener('click', () => {
     const name = document.getElementById('taskName').value.trim();
     const date = document.getElementById('taskDate').value;
     const time = document.getElementById('taskTime').value;
     if (!name || !date || !time) return alert('Fill all fields!');
     tasks.push({ id: Date.now(), name, date, time, completed: false });
+    saveTasks();             // ← save after mutation
     document.getElementById('popup').style.display = 'none';
     document.getElementById('taskName').value = '';
     document.getElementById('taskDate').value = '';
     document.getElementById('taskTime').value = '';
     renderTasks();
   });
+
+  // Clear All
   clearAllBtn.addEventListener('click', () => {
     if (confirm('Clear all tasks?')) {
       tasks = [];
+      saveTasks();           // ← save after clearing
       renderTasks();
     }
   });
 
+  // Format helpers (unchanged)
   const formatTime = t => {
     let [h, m] = t.split(':').map(Number);
     const ampm = h >= 12 ? 'PM' : 'AM';
@@ -78,18 +89,21 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const formatDate = d => {
     const todayStr = new Date().toDateString();
-    const selStr = new Date(d).toDateString();
+    const selStr   = new Date(d).toDateString();
     return todayStr === selStr
       ? 'Today'
-      : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      : new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   };
 
-  const renderTasks = () => {
+  // Render
+  function renderTasks() {
     tasksContainer.innerHTML = '';
     tasks
-      .filter(t => currentFilter === 'all'
-        || (currentFilter === 'completed' && t.completed)
-        || (currentFilter === 'pending' && !t.completed))
+      .filter(t => 
+        currentFilter === 'all'
+         || (currentFilter === 'completed' && t.completed)
+         || (currentFilter === 'pending'   && !t.completed)
+      )
       .forEach(task => {
         const div = document.createElement('div');
         div.className = 'task-item' + (task.completed ? ' completed' : '');
@@ -99,43 +113,45 @@ document.addEventListener('DOMContentLoaded', () => {
         div.innerHTML = `
           <input type="checkbox" ${task.completed ? 'checked' : ''} />
           <label>${task.name}</label>
-          <div class="task-time"><span>${formatTime(task.time)}</span><span>${formatDate(task.date)}</span></div>
+          <div class="task-time">
+            <span>${formatTime(task.time)}</span>
+            <span>${formatDate(task.date)}</span>
+          </div>
           <button class="delete-btn">delete</button>
         `;
-        // Bind item events
-        const checkbox = div.querySelector('input[type="checkbox"]');
-        const label = div.querySelector('label');
-        const timeDiv = div.querySelector('.task-time');
-        const delBtn = div.querySelector('.delete-btn');
-
-        checkbox.addEventListener('change', () => {
-          task.completed = checkbox.checked;
+        // Bind events
+        div.querySelector('input').addEventListener('change', () => {
+          task.completed = !task.completed;
+          saveTasks();       // ← save state
           renderTasks();
         });
-        label.addEventListener('dblclick', () => {
+        div.querySelector('label').addEventListener('dblclick', () => {
           const newName = prompt('Edit task name', task.name);
           if (newName) {
             task.name = newName;
+            saveTasks();     // ← save change
             renderTasks();
           }
         });
-        timeDiv.addEventListener('click', () => {
+        div.querySelector('.task-time').addEventListener('click', () => {
           const newTime = prompt('New time (HH:MM)', task.time);
           const newDate = prompt('New date (YYYY-MM-DD)', task.date);
           if (newTime && newDate) {
-            task.time = newTime; task.date = newDate;
+            task.time = newTime;
+            task.date = newDate;
+            saveTasks();   // ← save edit
             renderTasks();
           }
         });
-        delBtn.addEventListener('click', () => {
+        div.querySelector('.delete-btn').addEventListener('click', () => {
           tasks = tasks.filter(t => t.id !== task.id);
+          saveTasks();     // ← save deletion
           renderTasks();
         });
-
         tasksContainer.appendChild(div);
       });
-    progressEl.innerText = `${tasks.filter(t => t.completed).length} of ${tasks.length} completed`;
-  };
+    progressEl.innerText = `${tasks.filter(t=>t.completed).length} of ${tasks.length} completed`;
+  }
 
   // Initial render
   renderTasks();
